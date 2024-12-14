@@ -1,80 +1,90 @@
 const canvas = document.getElementById('mapCanvas');
 const ctx = canvas.getContext('2d');
-const generateButton = document.getElementById('generateButton');
 
-// Canvas-Größe setzen
+// Canvas-Größe
 canvas.width = 800;
 canvas.height = 600;
 
-// Zustand für das Zeichnen
+// Zustand und Datenstrukturen
 let isDrawing = false;
-let points = []; // Für die generierten Striche
+let currentPath = [];
+let paths = [];
 
 // Event-Listener für das Zeichnen
-canvas.addEventListener('mousedown', () => { isDrawing = true; });
-canvas.addEventListener('mouseup', () => { isDrawing = false; });
-canvas.addEventListener('mousemove', drawLine);
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', stopDrawing);
 
-// Funktion: Linie zeichnen
-function drawLine(event) {
+function startDrawing(event) {
+  isDrawing = true;
+  currentPath = [];
+}
+
+function draw(event) {
   if (!isDrawing) return;
 
   const x = event.offsetX;
   const y = event.offsetY;
-  points.push({ x, y });
+  currentPath.push({ x, y });
 
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = 'black';
-
-  if (points.length > 1) {
-    ctx.beginPath();
-    const lastPoint = points[points.length - 2];
-    ctx.moveTo(lastPoint.x, lastPoint.y);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.closePath();
-  }
-}
-
-// Funktion: Zufällige Karte generieren
-function generateMap() {
-  // Canvas zurücksetzen
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  points = []; // Striche löschen
-
-  // Karte generieren
-  const treeCount = 50; // Anzahl der Bäume
-  const mountainCount = 20; // Anzahl der Berge
-
-  // Bäume zeichnen (Kreise)
-  for (let i = 0; i < treeCount; i++) {
-    const x = Math.random() * canvas.width;
-    const y = Math.random() * canvas.height;
-    const radius = 10 + Math.random() * 10;
-
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = 'green';
-    ctx.fill();
-    ctx.closePath();
-  }
-
-  // Berge zeichnen (Dreiecke)
-  for (let i = 0; i < mountainCount; i++) {
-    const x = Math.random() * canvas.width;
-    const y = Math.random() * canvas.height;
-    const size = 20 + Math.random() * 30;
-
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x - size / 2, y + size);
-    ctx.lineTo(x + size / 2, y + size);
-    ctx.closePath();
-    ctx.fillStyle = 'brown';
-    ctx.fill();
-  }
+  redrawPaths();
+  drawPath(currentPath, 'blue');
 }
 
-// Event-Listener für den Generieren-Button
-generateButton.addEventListener('click', generateMap);
+function stopDrawing() {
+  isDrawing = false;
+  if (currentPath.length > 0) {
+    paths.push(currentPath);
+  }
+  currentPath = [];
+  detectAndFillClosedAreas();
+}
+
+// Zeichnet einen Pfad
+function drawPath(path, color = 'black') {
+  if (path.length < 2) return;
+
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.moveTo(path[0].x, path[0].y);
+  for (let i = 1; i < path.length; i++) {
+    ctx.lineTo(path[i].x, path[i].y);
+  }
+  ctx.stroke();
+}
+
+// Zeichnet alle Pfade neu
+function redrawPaths() {
+  paths.forEach(path => drawPath(path));
+}
+
+// Geschlossene Flächen erkennen und füllen
+function detectAndFillClosedAreas() {
+  paths.forEach(path => {
+    if (path.length < 3) return;
+
+    const start = path[0];
+    const end = path[path.length - 1];
+    const distance = Math.sqrt(
+      Math.pow(start.x - end.x, 2) + Math.pow(start.y - end.y, 2)
+    );
+
+    if (distance < 10) {
+      fillArea(path);
+    }
+  });
+}
+
+// Fläche füllen
+function fillArea(path) {
+  ctx.beginPath();
+  ctx.moveTo(path[0].x, path[0].y);
+  for (let i = 1; i < path.length; i++) {
+    ctx.lineTo(path[i].x, path[i].y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0, 128, 0, 0.5)';
+  ctx.fill();
+}
