@@ -5,86 +5,83 @@ const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 600;
 
-// Zustand und Datenstrukturen
-let isDrawing = false;
-let currentPath = [];
-let paths = [];
+// Initialisiere den Canvas mit Hintergrundfarbe
+function initializeCanvas() {
+  ctx.fillStyle = '#8B4513'; // Dunkles Braun
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+initializeCanvas();
 
-// Event-Listener für das Zeichnen
-canvas.addEventListener('mousedown', startDrawing);
-canvas.addEventListener('mousemove', draw);
-canvas.addEventListener('mouseup', stopDrawing);
-
-function startDrawing(event) {
-  isDrawing = true;
-  currentPath = [];
+// Berge zeichnen
+function drawMountain(x, y) {
+  ctx.beginPath();
+  ctx.moveTo(x, y); // Spitze des Dreiecks
+  ctx.lineTo(x - 15, y + 30); // Linke Basis
+  ctx.lineTo(x + 15, y + 30); // Rechte Basis
+  ctx.closePath();
+  ctx.fillStyle = '#A0522D'; // Braun für Berge
+  ctx.fill();
+  ctx.stroke();
 }
 
-function draw(event) {
-  if (!isDrawing) return;
-
-  const x = event.offsetX;
-  const y = event.offsetY;
-  currentPath.push({ x, y });
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  redrawPaths();
-  drawPath(currentPath, 'blue');
+function drawMountainChain(points) {
+  points.forEach(point => drawMountain(point.x, point.y));
 }
 
-function stopDrawing() {
-  isDrawing = false;
-  if (currentPath.length > 0) {
-    paths.push(currentPath);
+function generateMountains() {
+  const chainStartX = Math.random() * canvas.width * 0.8;
+  const chainStartY = Math.random() * canvas.height * 0.8;
+  const isChain = Math.random() > 0.5;
+
+  if (isChain) {
+    // Erzeuge eine Bergkette
+    let points = [];
+    for (let i = 0; i < 5; i++) {
+      points.push({
+        x: chainStartX + i * 30,
+        y: chainStartY + Math.random() * 20 - 10,
+      });
+    }
+    drawMountainChain(points);
+  } else {
+    // Erzeuge einen einzelnen Berg
+    drawMountain(chainStartX, chainStartY);
   }
-  currentPath = [];
-  detectAndFillClosedAreas();
 }
 
-// Zeichnet einen Pfad
-function drawPath(path, color = 'black') {
+// Wege mit Knotenpunkten
+function drawPathWithNodes(path) {
   if (path.length < 2) return;
 
   ctx.beginPath();
-  ctx.strokeStyle = color;
+  ctx.strokeStyle = '#000000'; // Schwarz für Wege
   ctx.lineWidth = 2;
   ctx.moveTo(path[0].x, path[0].y);
   for (let i = 1; i < path.length; i++) {
     ctx.lineTo(path[i].x, path[i].y);
   }
   ctx.stroke();
-}
 
-// Zeichnet alle Pfade neu
-function redrawPaths() {
-  paths.forEach(path => drawPath(path));
-}
-
-// Geschlossene Flächen erkennen und füllen
-function detectAndFillClosedAreas() {
-  paths.forEach(path => {
-    if (path.length < 3) return;
-
-    const start = path[0];
-    const end = path[path.length - 1];
-    const distance = Math.sqrt(
-      Math.pow(start.x - end.x, 2) + Math.pow(start.y - end.y, 2)
-    );
-
-    if (distance < 10) {
-      fillArea(path);
-    }
+  path.forEach(point => {
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFD700'; // Gold für Knotenpunkte
+    ctx.fill();
+    ctx.stroke();
   });
 }
 
-// Fläche füllen
-function fillArea(path) {
-  ctx.beginPath();
-  ctx.moveTo(path[0].x, path[0].y);
-  for (let i = 1; i < path.length; i++) {
-    ctx.lineTo(path[i].x, path[i].y);
+function generatePaths() {
+  const startX = Math.random() * canvas.width;
+  const startY = Math.random() * canvas.height;
+  const path = [];
+
+  for (let i = 0; i < 5; i++) {
+    path.push({
+      x: startX + i * 50 + Math.random() * 20 - 10,
+      y: startY + Math.random() * 40 - 20,
+    });
   }
-  ctx.closePath();
-  ctx.fillStyle = 'rgba(0, 128, 0, 0.5)';
-  ctx.fill();
+
+  drawPathWithNodes(path);
 }
